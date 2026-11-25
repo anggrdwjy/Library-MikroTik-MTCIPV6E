@@ -1,11 +1,22 @@
 # MTCIPv6E — Panduan Implementasi dan Operasi
 
+## Daftar Isi
+
+- [Modul 1 - Introduction to IPv6](#modul-1---introduction-to-ipv6)
+- [Modul 2 - IPv6 Protocol](#modul-2---ipv6-protocol)
+- [Modul 3 - IPv6 Packet](#modul-3---ipv6-packet)
+- [Modul 4 - IPv6 Security](#modul-4---ipv6-security)
+- [Modul 5 - Transition Mechanisms](#modul-5---transition-mechanisms)
+- [Modul 6 - Interoperability](#modul-6---interoperability)
+
 ## Modul 1 - Introduction to IPv6
 
-### Konsep Kunci
+**Tujuan:** Mampu membaca, menulis, membagi, dan memasang alamat IPv6 secara benar. Modul ini merupakan fondasi.
+
+### Dasar Teori
 
 - **IPv4 dan IPv6:** IPv4 memiliki panjang 32 bit dengan jumlah alamat sekitar 4,3 miliar. IPv6 memiliki panjang 128 bit dengan jumlah alamat yang sangat besar, sehingga pendekatan perancangan tidak lagi menghemat alamat, melainkan membaginya secara terstruktur.
-- **Notasi:** Notasi menggunakan heksadesimal yang dipisahkan oleh titik dua. Nol di depan setiap grup dapat dihilangkan. Satu rangkaian nol berturut-turut dapat disingkat menjadi `::` dan hanya boleh digunakan satu kali dalam satu alamat. Contoh: `2001:0db8:0000:0000:0000:0000:0000:0001` menjadi `2001:db8::1`.
+- **Notasi:** Notasi menggunakan heksadesimal yang dipisahkan oleh titik dua. Nol di depan setiap grup dapat dihilangkan. Satu rangkaian nol berturut-turut dapat disingkat menjadi `::` dan hanya diperbolehkan digunakan satu kali dalam satu alamat. Contoh: `2001:0db8:0000:0000:0000:0000:0000:0001` menjadi `2001:db8::1`.
 - **Jenis alamat:** Global Unicast (dapat di-routing di internet, awalan `2000::/3`), Link-Local (`fe80::/10`, hanya berlaku pada satu link dan terbentuk secara otomatis), Unique Local (`fc00::/7`, setara dengan alamat private IPv4), Multicast (`ff00::/8`), Anycast (alamat yang sama digunakan oleh banyak node, paket dikirim ke node terdekat), Loopback `::1`, dan Unspecified `::`.
 - **EUI-64:** Mekanisme pembentukan 64 bit terakhir alamat dari MAC address. MAC address sepanjang 48 bit disisipi `fffe` di bagian tengah, kemudian bit ke-7 dibalik (bit Universal/Local). Mekanisme ini memungkinkan SLAAC beroperasi.
 
@@ -13,10 +24,10 @@
 
 | Aspek | RouterOS v6 | RouterOS v7 | Catatan Operasi |
 |---|---|---|---|
-| Sintaks dasar | `/ipv6 address add ...` (spasi) | `/ipv6/address/add ...` (slash) | Fungsi sama, penulisan berbeda. Skrip v6 harus disesuaikan sebelum dijalankan di v7. |
-| Flag advertise | `advertise=yes/no` pada `/ipv6 address` | `advertise=yes/no` pada `/ipv6/address` | Pada v7, flag ini lebih konsisten dengan NDP. Pastikan `advertise=yes` untuk LAN klien. |
+| Sintaks dasar | `/ipv6 address add ...` (spasi) | `/ipv6/address/add ...` (slash) | Fungsi sama, penulisan berbeda. Skrip v6 wajib disesuaikan sebelum dijalankan di v7. |
+| Flag advertise | `advertise=yes/no` pada `/ipv6 address` | `advertise=yes/no` pada `/ipv6/address` | Pada v7, flag ini lebih konsisten dengan NDP. Verifikasi bahwa `advertise=yes` untuk LAN klien. |
 | EUI-64 | `eui-64=yes` didukung | `eui-64=yes` didukung | Pada v7, pembentukan alamat dari MAC lebih stabil dan tercatat pada `dynamic` address. |
-| Link-Local | Terbentuk otomatis `fe80::/10`, dapat ditambah manual | Terbentuk otomatis `fe80::/10`, dapat ditambah manual | Pada v7, link-local manual lebih mudah dibedakan pada `/ipv6/address/print`. |
+| Link-Local | Terbentuk otomatis `fe80::/10`, dapat ditambah manual | Terbentuk otomatis `fe80::/10`, dapat ditambah manual | Pada v7, link-local manual lebih sederhana dibedakan pada `/ipv6/address/print`. |
 | Duplicate Address Detection (DAD) | Berjalan, status terlihat pada `address print` | Berjalan, status lebih detail pada `address print` | Pada v7, alamat yang gagal DAD ditandai lebih jelas. |
 | ULA | Didukung melalui `/ipv6 address` | Didukung melalui `/ipv6/address` | Tidak ada perbedaan fungsional. |
 
@@ -49,13 +60,13 @@
 /ipv6/address/print where address~"fe80"
 ```
 
-> **Rekomendasi:** Gunakan konfigurasi v7 untuk laboratorium baru. Apabila masih mengoperasikan v6, konversikan spasi menjadi slash sebelum migrasi, dan uji kembali `advertise` serta DAD setelah migrasi.
+> **Rekomendasi:** Implementasikan konfigurasi v7 untuk laboratorium baru. Apabila masih mengoperasikan v6, konversikan spasi menjadi slash sebelum migrasi, dan uji kembali `advertise` serta DAD setelah migrasi.
 
-### Studi Kasus 1 - Kantor Cabang di Surabaya
+### Skenario Implementasi 1 - Kantor Cabang di Surabaya
 
-Sebuah perusahaan di Surabaya memperoleh prefix `2001:db8:abcd::/48` dari ISP. Tim IT harus membagi prefix tersebut untuk tiga lokasi: Core, DMZ, dan Branch. Tim IT sebelumnya terbiasa melakukan subnetting IPv4 /24 dan berencana menggunakan /120 untuk LAN IPv6 agar hemat. Pendekatan tersebut merupakan kesalahan umum. Pada IPv6, penghematan tidak dilakukan dengan cara tersebut.
+Sebuah perusahaan di Surabaya memperoleh prefix `2001:db8:abcd::/48` dari ISP. Tim Operasi Jaringan wajib membagi prefix tersebut untuk tiga lokasi: Core, DMZ, dan Branch. Tim Operasi Jaringan sebelumnya terbiasa melakukan subnetting IPv4 /24 dan berencana menggunakan /120 untuk LAN IPv6 agar hemat. Pendekatan tersebut merupakan kesalahan umum. Pada IPv6, penghematan tidak dilakukan dengan cara tersebut.
 
-**Solusi:** Gunakan /64 untuk setiap LAN. Dari /48, tersedia 16 bit untuk subnet (64 dikurangi 48). Dengan demikian, tersedia 65.536 subnet /64. Jumlah tersebut memadai untuk seluruh cabang. Pembagiannya adalah sebagai berikut: 10 untuk Core, 20 untuk DMZ, dan 30 untuk Branch. Sisa prefix disimpan untuk pengembangan selanjutnya.
+**Solusi:** Implementasikan /64 untuk setiap LAN. Dari /48, tersedia 16 bit untuk subnet (64 dikurangi 48). Dengan demikian, tersedia 65.536 subnet /64. Jumlah tersebut memadai untuk seluruh cabang. Pembagiannya adalah sebagai berikut: 10 untuk Core, 20 untuk DMZ, dan 30 untuk Branch. Sisa prefix disimpan untuk pengembangan selanjutnya.
 
 ### Implementasi - R1 Edge
 
@@ -84,7 +95,7 @@ Sebuah perusahaan di Surabaya memperoleh prefix `2001:db8:abcd::/48` dari ISP. T
 /ipv6/address/add address=fe80::2/64 interface=ether2 advertise=no comment="LL-Branch"
 ```
 
-### Operasi dan Verifikasi
+### Validasi Operasional dan Verifikasi
 
 ```routeros
 # Tampilkan seluruh alamat, pastikan advertise=yes untuk LAN klien
@@ -102,23 +113,23 @@ ping 2001:db8:abcd:10::1
 ping fe80::1%ether2
 ```
 
-### Apabila Terjadi Kesalahan, Periksa Hal Berikut
+### Apabila Terjadi Kesalahan, Verifikasi Hal Berikut
 
-- **Klien tidak memperoleh alamat global:** Periksa `advertise=yes` dan pastikan NDP / RA aktif. Lihat Modul 2.
-- **Alamat tampil tetapi tidak dapat melakukan ping:** Periksa firewall pada jalur tersebut dan pastikan prefix yang digunakan adalah /64, bukan /120 atau /126.
-- **Kesulitan membaca alamat:** Latih kompresi alamat. Perlu diingat bahwa `::` hanya boleh digunakan satu kali dalam satu alamat.
+- **Klien tidak memperoleh alamat global:** Verifikasi `advertise=yes` dan verifikasi bahwa NDP / RA aktif. Amati Modul 2.
+- **Alamat tampil tetapi tidak dapat melakukan ping:** Verifikasi firewall pada jalur tersebut dan verifikasi bahwa prefix yang digunakan adalah /64, bukan /120 atau /126.
+- **Kesulitan membaca alamat:** Latih kompresi alamat. Perlu diingat bahwa `::` hanya diperbolehkan digunakan satu kali dalam satu alamat.
 
-> **Luaran Modul 1:** Tabel addressing plan yang telah diisi dan diterapkan pada R1 dan R2, serta keluaran `/ipv6/address/print` dari kedua router.
+> **Luaran Teknis Modul 1:** Tabel addressing plan yang telah diisi dan diterapkan pada R1 dan R2, serta keluaran `/ipv6/address/print` dari kedua router.
 
 ## Modul 2 - IPv6 Protocol
 
 **Tujuan:** Mampu membuat klien memperoleh alamat secara otomatis, memahami cara kerja Neighbor Discovery, dan mampu melakukan routing IPv6 dasar.
 
-### Konsep Kunci
+### Dasar Teori
 
 - **SLAAC (Stateless Address Autoconfiguration):** Router mengirim Router Advertisement (RA). Klien membentuk alamat sendiri dari prefix pada RA ditambah EUI-64 atau privacy extension. Router tidak mencatat alamat yang diperoleh oleh masing-masing klien.
 - **DHCPv6 Stateless:** Klien memperoleh alamat dari SLAAC, sedangkan informasi DNS dan informasi lainnya diperoleh dari DHCPv6 server.
-- **DHCPv6 Stateful:** Klien memperoleh alamat lengkap dari DHCPv6 server, serupa dengan DHCP pada IPv4. Router tetap mengirim RA, tetapi flag pada RA menyatakan bahwa DHCPv6 harus digunakan.
+- **DHCPv6 Stateful:** Klien memperoleh alamat lengkap dari DHCPv6 server, serupa dengan DHCP pada IPv4. Router tetap mengirim RA, tetapi flag pada RA menyatakan bahwa DHCPv6 wajib digunakan.
 - **NDP:** Pengganti ARP. Terdiri atas Router Solicitation (RS), Router Advertisement (RA), Neighbor Solicitation (NS), Neighbor Advertisement (NA), dan Redirect. NS juga digunakan untuk Duplicate Address Detection (DAD).
 - **Routing IPv6:** Konsepnya sama dengan IPv4, tetapi next-hop sering menggunakan alamat link-local `fe80::`. Oleh karena itu, routing table yang berisi `fe80::` merupakan hal yang wajar.
 
@@ -171,11 +182,11 @@ ping fe80::1%ether2
 /ipv6/route/add dst-address=::/0 gateway=fe80::1%ether1 routing-table=main comment="default-to-R1"
 ```
 
-> **Rekomendasi:** Pada v7, selalu cantumkan `routing-table=main` pada route IPv6. Pada v6, periksa kembali lease DHCPv6 setelah reboot, karena binding dapat hilang apabila tidak disimpan sebagai static binding.
+> **Rekomendasi:** Pada v7, selalu cantumkan `routing-table=main` pada route IPv6. Pada v6, verifikasi kembali lease DHCPv6 setelah reboot, karena binding dapat hilang apabila tidak disimpan sebagai static binding.
 
-### Studi Kasus 2 - WISP dengan Dua Tipe Pelanggan
+### Skenario Implementasi 2 - WISP dengan Dua Tipe Pelanggan
 
-Sebuah WISP memiliki dua tipe pelanggan. Pelanggan rumahan menginginkan layanan plug and play tanpa konfigurasi tambahan. Pelanggan korporat menginginkan alamat yang tercatat secara rapi dan DNS internal. Solusinya tidak memaksakan satu metode untuk seluruh pelanggan. Gunakan SLAAC untuk pelanggan rumahan, serta DHCPv6 Stateful dan DHCP PD untuk pelanggan korporat. Kedua metode tersebut dapat berjalan pada interface yang berbeda.
+Sebuah WISP memiliki dua tipe pelanggan. Pelanggan rumahan menginginkan layanan plug and play tanpa konfigurasi tambahan. Pelanggan korporat menginginkan alamat yang tercatat secara rapi dan DNS internal. Solusinya tidak memaksakan satu metode untuk seluruh pelanggan. Implementasikan SLAAC untuk pelanggan rumahan, serta DHCPv6 Stateful dan DHCP PD untuk pelanggan korporat. Kedua metode tersebut dapat berjalan pada interface yang berbeda.
 
 ### Implementasi - SLAAC untuk LAN Core (R1)
 
@@ -242,7 +253,7 @@ Sebuah WISP memiliki dua tipe pelanggan. Pelanggan rumahan menginginkan layanan 
 /ipv6/route/print where dst-address=2001:db8:abcd:30::/64
 ```
 
-### Operasi dan Verifikasi
+### Validasi Operasional dan Verifikasi
 
 ```routeros
 # Pada R1/R2: lihat neighbor yang telah terdeteksi
@@ -264,25 +275,24 @@ ping 2001:db8:abcd:10::1
 /tool/traceroute address=2001:db8:abcd:30::10
 ```
 
-### Apabila Terjadi Kesalahan, Periksa Hal Berikut
+### Apabila Terjadi Kesalahan, Verifikasi Hal Berikut
 
-- **Klien memperoleh alamat tetapi tidak memperoleh DNS:** Periksa `other-configuration=yes` dan pastikan DHCPv6 option DNS telah dikonfigurasi secara benar.
-- **Klien tidak memperoleh alamat sama sekali pada mode Stateful:** Periksa `managed-address-configuration=yes` pada NDP. Apabila flag tersebut bernilai no, klien akan menggunakan SLAAC saja.
-- **Routing tidak berfungsi:** Periksa gateway yang menggunakan `fe80::...%interface`. Link-local wajib disertai nama interface, karena `fe80::` dapat terdapat pada banyak interface.
-- **Duplicate Address:** Periksa log DAD. Apabila terdapat duplikasi, ganti alamat statis yang mengalami konflik.
+- **Klien memperoleh alamat tetapi tidak memperoleh DNS:** Verifikasi `other-configuration=yes` dan verifikasi bahwa DHCPv6 option DNS telah dikonfigurasi secara benar.
+- **Klien tidak memperoleh alamat sama sekali pada mode Stateful:** Verifikasi `managed-address-configuration=yes` pada NDP. Apabila flag tersebut bernilai no, klien akan menggunakan SLAAC saja.
+- **Routing tidak berfungsi:** Verifikasi gateway yang menggunakan `fe80::...%interface`. Link-local wajib disertai nama interface, karena `fe80::` dapat terdapat pada banyak interface.
+- **Duplicate Address:** Verifikasi log DAD. Apabila terdapat duplikasi, ganti alamat statis yang mengalami konflik.
 
-> **Luaran Modul 2:** Satu LAN beroperasi dengan SLAAC, satu LAN beroperasi dengan DHCPv6 Stateful, serta routing R1 ke R2 dalam dua arah dapat melakukan ping.
-
+> **Luaran Teknis Modul 2:** Satu LAN beroperasi dengan SLAAC, satu LAN beroperasi dengan DHCPv6 Stateful, serta routing R1 ke R2 dalam dua arah dapat melakukan ping.
 
 ## Modul 3 - IPv6 Packet
 
 **Tujuan:** Mampu membaca header IPv6, memahami cara kerja extension header, fragmentasi, dan Path MTU Discovery. Modul ini meningkatkan kemampuan troubleshooting.
 
-### Konsep Kunci
+### Dasar Teori
 
 - **Header IPv6 sepanjang 40 byte dan bersifat fixed:** Version, Traffic Class, Flow Label, Payload Length, Next Header, Hop Limit, Source, dan Destination. Tidak terdapat checksum header sebagaimana pada IPv4, dan tidak terdapat field fragmentasi pada header utama.
 - **Next Header dan Daisy Chaining:** Next Header menunjuk ke header berikutnya. Header dapat berantai sebagai berikut: IPv6 - Hop-by-Hop - Routing - Fragment - Destination - TCP/UDP. Rangkaian ini disebut extension header.
-- **Fragmentasi hanya dilakukan oleh pengirim:** Router tidak memecah paket. Apabila paket terlalu besar, router akan membuang paket tersebut dan mengirim ICMPv6 Packet Too Big. Pengirim yang harus memecah atau memperkecil ukuran paket.
+- **Fragmentasi hanya dilakukan oleh pengirim:** Router tidak memecah paket. Apabila paket terlalu besar, router akan membuang paket tersebut dan mengirim ICMPv6 Packet Too Big. Pengirim yang wajib memecah atau memperkecil ukuran paket.
 - **Path MTU Discovery (PMTUD):** Pengirim mengirim paket berukuran besar, menerima ICMPv6 Packet Too Big, kemudian menurunkan ukuran paket hingga dapat diteruskan. Apabila ICMPv6 Packet Too Big diblokir oleh firewall, PMTUD akan gagal dan situs web akan terasa memuat sebagian atau mengalami timeout.
 
 ### Perbandingan RouterOS v6 dan v7 — Modul 3
@@ -294,7 +304,7 @@ ping 2001:db8:abcd:10::1
 | Ping dengan do-not-fragment | `/tool ping address=... size=...` (opsi terbatas) | `/tool/ping address=... size=... do-not-fragment=yes` | Pada v7, opsi `do-not-fragment` didukung penuh untuk pengujian PMTUD. |
 | Traceroute | `/tool traceroute` | `/tool/traceroute` | Pada v7, keluaran lebih detail untuk hop IPv6. |
 | Sniffer / Torch | `/tool sniffer`, `/tool torch` | `/tool/sniffer`, `/tool/torch` | Pada v7, filter `ip-protocol=ipv6` lebih akurat. |
-| Path MTU Discovery | Bergantung pada ICMPv6 Packet Too Big | Bergantung pada ICMPv6 Packet Too Big, penanganan lebih baik | Pada kedua versi, ICMPv6 type 2 tidak boleh diblokir. |
+| Path MTU Discovery | Bergantung pada ICMPv6 Packet Too Big | Bergantung pada ICMPv6 Packet Too Big, penanganan lebih baik | Pada kedua versi, ICMPv6 type 2 tidak diperbolehkan diblokir. |
 
 #### Konfigurasi RouterOS v6 — Modul 3
 
@@ -329,11 +339,11 @@ ping 2001:db8:abcd:10::1
 /tool/torch interface=ether1 ip-protocol=ipv6
 ```
 
-> **Rekomendasi:** Gunakan v7 untuk pengujian PMTUD karena opsi `do-not-fragment` tersedia secara eksplisit. Pada v6, dokumentasikan MTU tunnel secara manual, karena pengujian tidak seakurat v7.
+> **Rekomendasi:** Implementasikan v7 untuk pengujian PMTUD karena opsi `do-not-fragment` tersedia secara eksplisit. Pada v6, dokumentasikan MTU tunnel secara manual, karena pengujian tidak seakurat v7.
 
-### Studi Kasus 3 - Situs Web Lambat, Ping Lancar
+### Skenario Implementasi 3 - Situs Web Mengalami Degradasi Kinerja, Ping Stabil
 
-Pelanggan melaporkan bahwa ping ke server berjalan lancar, tetapi pembukaan situs web berukuran besar sering gagal atau hanya memuat sebagian. Pada IPv4, kondisi tersebut tidak terjadi. Pada IPv6, terdapat tunnel dengan MTU 1400, tetapi firewall memblokir ICMPv6. Akibatnya, pengirim tidak pernah mengetahui bahwa paket harus diperkecil. PMTUD gagal. Solusinya bukan menaikkan MTU, melainkan mengizinkan ICMPv6 Packet Too Big dan mengatur MTU tunnel secara benar.
+Pelanggan melaporkan bahwa ping ke server berjalan stabil, tetapi pembukaan situs web berukuran besar sering gagal atau hanya memuat sebagian. Pada IPv4, kondisi tersebut tidak terjadi. Pada IPv6, terdapat tunnel dengan MTU 1400, tetapi firewall memblokir ICMPv6. Akibatnya, pengirim tidak pernah mengetahui bahwa paket wajib diperkecil. PMTUD gagal. Solusinya bukan menaikkan MTU, melainkan mengizinkan ICMPv6 Packet Too Big dan mengatur MTU tunnel secara benar.
 
 ### Implementasi - Pemeriksaan dan Pengaturan MTU
 
@@ -371,31 +381,30 @@ Pelanggan melaporkan bahwa ping ke server berjalan lancar, tetapi pembukaan situ
 /tool/torch interface=ether1 ip-protocol=ipv6
 ```
 
-### Operasi dan Verifikasi
+### Validasi Operasional dan Verifikasi
 
-- Ping berukuran 1280 byte harus berhasil. Nilai 1280 merupakan MTU minimum IPv6. Apabila ping 1280 byte saja gagal, terdapat permasalahan pada link atau firewall.
-- Ping berukuran 1500 byte dengan do-not-fragment gagal, tetapi ping 1400 byte berhasil: hal tersebut menunjukkan terdapat link dengan MTU 1400 di tengah jalur. Kondisi tersebut wajar untuk tunnel. Catat nilai MTU pada dokumentasi.
-- Periksa firewall: pastikan ICMPv6 type 2 (Packet Too Big) tidak di-drop. Lihat Modul 4 untuk aturan firewall lengkap.
+- Ping berukuran 1280 byte wajib berhasil. Nilai 1280 merupakan MTU minimum IPv6. Apabila ping 1280 byte saja gagal, terdapat permasalahan pada link atau firewall.
+- Ping berukuran 1500 byte dengan do-not-fragment gagal, tetapi ping 1400 byte berhasil: hal tersebut menunjukkan terdapat link dengan MTU 1400 di tengah jalur. Kondisi tersebut wajar untuk tunnel. Dokumentasikan nilai MTU pada dokumentasi.
+- Verifikasi firewall: verifikasi bahwa ICMPv6 type 2 (Packet Too Big) tidak di-drop. Amati Modul 4 untuk aturan firewall lengkap.
 
-### Apabila Terjadi Kesalahan, Periksa Hal Berikut
+### Apabila Terjadi Kesalahan, Verifikasi Hal Berikut
 
-- **Situs web hanya memuat sebagian:** Periksa MTU tunnel dan ICMPv6 Packet Too Big.
+- **Situs web hanya memuat sebagian:** Verifikasi MTU tunnel dan ICMPv6 Packet Too Big.
 - **Ping berukuran besar gagal, tetapi ping berukuran kecil berhasil:** Gejala tersebut menunjukkan permasalahan MTU, bukan permasalahan routing.
-- **Fragmentasi muncul secara terus-menerus:** Periksa aplikasi yang mengirim paket berukuran besar. Sebaiknya aplikasi menggunakan ukuran yang sesuai dengan MTU, bukan mengandalkan fragmentasi.
+- **Fragmentasi muncul secara terus-menerus:** Verifikasi aplikasi yang mengirim paket berukuran besar. Direkomendasikan aplikasi menggunakan ukuran yang sesuai dengan MTU, bukan mengandalkan fragmentasi.
 
-> **Luaran Modul 3:** Laporan MTU setiap link (WAN, tunnel, LAN) dan hasil ping 1280, 1400, dan 1500 byte dengan do-not-fragment.
-
+> **Luaran Teknis Modul 3:** Laporan MTU setiap link (WAN, tunnel, LAN) dan hasil ping 1280, 1400, dan 1500 byte dengan do-not-fragment.
 
 ## Modul 4 - IPv6 Security
 
 **Tujuan:** Mampu mengamankan NDP, ICMPv6, dan traffic IPv6 dengan firewall yang benar, serta memahami IPsec untuk IPv6.
 
-### Konsep Kunci
+### Dasar Teori
 
 - **ICMPv6 bersifat wajib, bukan opsional.** Pada IPv4, pemblokiran seluruh ICMP sering dilakukan. Pada IPv6, tindakan tersebut berakibat fatal, karena NDP, PMTUD, dan error reporting seluruhnya menggunakan ICMPv6.
 - **NDP rentan terhadap spoofing:** Setiap pihak dapat mengirim RA palsu dan mengaku sebagai gateway. Serangan tersebut disebut Rogue RA. Mitigasinya adalah dengan memfilter RA pada port access, menggunakan RA Guard pada switch apabila tersedia, dan mengizinkan firewall RA hanya dari router yang resmi.
 - **Detail Neighbor Discovery:** RS (klien mencari router), RA (router mengiklankan prefix), NS (mencari tetangga / DAD), NA (menjawab NS), Redirect (router memberikan informasi jalur yang lebih baik), dan MLD (manajemen multicast).
-- **Temporary Address / Privacy Extension:** Klien mengganti alamat host-part secara berkala agar tidak mudah dilacak dari MAC address. Server sebaiknya menggunakan alamat statis, sedangkan klien dapat menggunakan temporary address.
+- **Temporary Address / Privacy Extension:** Klien mengganti alamat host-part secara berkala agar tidak sederhana dilacak dari MAC address. Server direkomendasikan menggunakan alamat statis, sedangkan klien dapat menggunakan temporary address.
 - **IPsec:** AH (Authentication Header) untuk autentikasi dan integritas header, ESP (Encapsulating Security Payload) untuk enkripsi payload, dan AH ditambah ESP untuk keduanya. Pada IPv6, IPsec merupakan bagian dari desain awal, tetapi pada RouterOS konfigurasinya dilakukan melalui menu IPsec yang sama sebagaimana pada IPv4.
 
 ### Perbandingan RouterOS v6 dan v7 — Modul 4
@@ -403,9 +412,9 @@ Pelanggan melaporkan bahwa ping ke server berjalan lancar, tetapi pembukaan situ
 | Aspek | RouterOS v6 | RouterOS v7 | Catatan Operasi |
 |---|---|---|---|
 | Firewall IPv6 | `/ipv6 firewall filter` | `/ipv6/firewall/filter` | Sintaks filter sama, penulisan berbeda. Pada v7, `print stats` lebih detail. |
-| ICMPv6 filter | `protocol=icmpv6 icmp-options=...` | `protocol=icmpv6 icmp-options=...` | Pada kedua versi, ICMPv6 wajib tidak boleh diblokir seluruhnya. |
+| ICMPv6 filter | `protocol=icmpv6 icmp-options=...` | `protocol=icmpv6 icmp-options=...` | Pada kedua versi, ICMPv6 wajib tidak diperbolehkan diblokir seluruhnya. |
 | Connection-state | `connection-state=established,related` | `connection-state=established,related` | Fungsi sama. |
-| Logging | `log=yes log-prefix=...` | `log=yes log-prefix=...` | Pada v7, log drop lebih mudah difilter pada `/log/print`. |
+| Logging | `log=yes log-prefix=...` | `log=yes log-prefix=...` | Pada v7, log drop lebih sederhana difilter pada `/log/print`. |
 | IPsec Profile / Proposal | `/ip ipsec profile`, `/ip ipsec proposal` | `/ip/ipsec/profile`, `/ip/ipsec/proposal` | Pada v7, `hash-algorithm`, `enc-algorithm`, dan `dh-group` wajib konsisten. |
 | IPsec Peer / Identity | `/ip ipsec peer`, `/ip ipsec identity` | `/ip/ipsec/peer`, `/ip/ipsec/identity` | Pada v7, IKEv2 lebih stabil untuk IPv6. Pada v6, IKEv1 masih sering digunakan. |
 | IPsec Policy | `/ip ipsec policy` dengan `sa-src-address`, `sa-dst-address` | `/ip/ipsec/policy` dengan `src-address`, `dst-address`, `tunnel=yes` | Pada v7, penulisan policy lebih sederhana dan terintegrasi dengan peer. |
@@ -461,17 +470,17 @@ Pelanggan melaporkan bahwa ping ke server berjalan lancar, tetapi pembukaan situ
 /ip/ipsec/installed-sa/print
 ```
 
-> **Rekomendasi:** Gunakan v7 untuk IPsec IPv6 karena IKEv2 lebih stabil. Pada v6, uji kembali SA setelah reboot, karena policy dapat memerlukan penyesuaian `sa-src-address` dan `sa-dst-address`.
+> **Rekomendasi:** Implementasikan v7 untuk IPsec IPv6 karena IKEv2 lebih stabil. Pada v6, uji kembali SA setelah reboot, karena policy dapat memerlukan penyesuaian `sa-src-address` dan `sa-dst-address`.
 
-### Studi Kasus 4 - Rogue RA di Kantor
+### Skenario Implementasi 4 - Rogue RA di Kantor
 
-Di sebuah kantor, terdapat pengguna yang memasang router WiFi rumahan pada LAN. Router tersebut mengirim RA dengan prefix palsu. Seluruh PC pada LAN tersebut tiba-tiba memperoleh gateway palsu dan akses internet terputus, atau traffic dialihkan melalui router tersebut. Tim IT mengalami kebingungan karena ping ke gateway asli masih berhasil, tetapi penjelajahan web tidak berfungsi. Kondisi tersebut merupakan gejala klasik Rogue RA.
+Di sebuah kantor, terdapat pengguna yang memasang router WiFi rumahan pada LAN. Router tersebut mengirim RA dengan prefix palsu. Seluruh PC pada LAN tersebut tiba-tiba memperoleh gateway palsu dan akses konektivitas internet terterputus, atau traffic dialihkan melalui router tersebut. Tim Operasi Jaringan mengalami kebingungan karena ping ke gateway asli masih berhasil, tetapi akses web tidak berfungsi. Kondisi tersebut merupakan gejala klasik Rogue RA.
 
 **Solusi:** Pada R1, filter RA yang masuk dari interface access. Hanya RA dari R1 dan R2 yang diizinkan. Pada switch access, aktifkan RA Guard apabila mendukung. Pada firewall, drop RA dari interface yang bukan merupakan uplink router resmi.
 
 ### Implementasi - Firewall IPv6 yang Benar
 
-Urutan firewall sangat penting: terima established/related terlebih dahulu, kemudian terima ICMPv6 yang wajib, kemudian terima service yang memang dibuka, dan terakhir drop sisanya. Jangan menempatkan drop all di bagian atas.
+Urutan firewall sangat kritis: terima established/related terlebih dahulu, kemudian terima ICMPv6 yang wajib, kemudian terima service yang memang dibuka, dan terakhir drop sisanya. Hindari penempatan drop all di bagian atas.
 
 ```routeros
 # === INPUT CHAIN - untuk traffic menuju router itu sendiri ===
@@ -549,7 +558,7 @@ Urutan firewall sangat penting: terima established/related terlebih dahulu, kemu
 /ip/ipsec/installed-sa/print
 ```
 
-### Operasi dan Verifikasi
+### Validasi Operasional dan Verifikasi
 
 ```routeros
 # Periksa firewall hit count - rule mana yang terkena
@@ -566,23 +575,22 @@ ping 2001:db8:abcd:10::1
 /ip/ipsec/installed-sa/print
 ```
 
-### Apabila Terjadi Kesalahan, Periksa Hal Berikut
+### Apabila Terjadi Kesalahan, Verifikasi Hal Berikut
 
-- **Setelah pemasangan firewall, akses internet terputus sepenuhnya:** Periksa apakah ICMPv6 Packet Too Big dan NDP ter-drop. Kondisi tersebut merupakan penyebab yang paling sering terjadi.
-- **IPsec tidak terbentuk:** Periksa peer address, pastikan pre-shared-key sama pada kedua sisi, dan pastikan firewall tidak memblokir UDP 500 dan 4500 untuk IPv6.
-- **Rogue RA masih terjadi:** Periksa rule drop RA yang terdapat pada chain forward dan pada interface yang benar. Periksa pula apakah switch access telah mengaktifkan RA Guard.
+- **Setelah pemasangan firewall, akses konektivitas konektivitas internet terterputus sepenuhnya:** Verifikasi apakah ICMPv6 Packet Too Big dan NDP ter-drop. Kondisi tersebut merupakan penyebab yang paling sering terjadi.
+- **IPsec tidak terbentuk:** Verifikasi peer address, verifikasi bahwa pre-shared-key sama pada kedua sisi, dan verifikasi bahwa firewall tidak memblokir UDP 500 dan 4500 untuk IPv6.
+- **Rogue RA masih terjadi:** Verifikasi rule drop RA yang terdapat pada chain forward dan pada interface yang benar. Verifikasi pula apakah switch access telah mengaktifkan RA Guard.
 
-> **Luaran Modul 4:** Firewall IPv6 aktif pada R1 dan R2 dengan log drop, serta IPsec R1-R2 dalam keadaan established dan traffic LAN terenkripsi.
-
+> **Luaran Teknis Modul 4:** Firewall IPv6 aktif pada R1 dan R2 dengan log drop, serta IPsec R1-R2 dalam keadaan established dan traffic LAN terenkripsi.
 
 ## Modul 5 - Transition Mechanisms
 
 **Tujuan:** Mampu membuat IPv4 dan IPv6 berjalan secara bersamaan, serta mampu menghubungkan pulau IPv6 melalui jaringan IPv4, atau sebaliknya.
 
-### Konsep Kunci
+### Dasar Teori
 
 - **Dual Stack:** Menjalankan IPv4 dan IPv6 secara bersamaan pada seluruh interface, routing, DNS, dan firewall. Metode ini merupakan cara yang paling aman dan direkomendasikan oleh RIPE. Seluruh perangkat modern mendukung metode ini.
-- **6to4:** Tunnel otomatis dengan prefix `2002::/16`, alamat IPv6 dibentuk dari IPv4 publik. Metode ini cepat untuk laboratorium, tetapi tidak direkomendasikan untuk produksi karena tidak stabil dan sering dinonaktifkan.
+- **6to4:** Tunnel otomatis dengan prefix `2002::/16`, alamat IPv6 dibentuk dari IPv4 publik. Metode ini optimal untuk laboratorium, tetapi tidak direkomendasikan untuk produksi karena tidak stabil dan sering dinonaktifkan.
 - **6RD (IPv6 Rapid Deployment):** Versi 6to4 yang dikendalikan oleh ISP. ISP menentukan prefix dan relay sendiri, sehingga lebih stabil dan dapat dikelola.
 - **Teredo:** Tunnel melalui NAT dengan menggunakan UDP. Metode ini digunakan untuk klien di belakang NAT yang tidak dapat menggunakan tunnel lain. Kinerjanya tidak optimal, tetapi berguna sebagai alternatif terakhir.
 - **DS-Lite:** Pelanggan hanya memperoleh IPv6 dari ISP. Traffic IPv4 dibungkus di dalam IPv6 menuju AFTR, kemudian di-NAT di sisi tersebut. Metode ini sesuai untuk ISP yang kehabisan IPv4 publik.
@@ -591,14 +599,14 @@ ping 2001:db8:abcd:10::1
 
 | Aspek | RouterOS v6 | RouterOS v7 | Catatan Operasi |
 |---|---|---|---|
-| Dual Stack | Didukung, IPv4 dan IPv6 berjalan bersamaan | Didukung, IPv4 dan IPv6 berjalan bersamaan | Pada kedua versi, firewall harus dibuat untuk kedua protokol. |
+| Dual Stack | Didukung, IPv4 dan IPv6 berjalan bersamaan | Didukung, IPv4 dan IPv6 berjalan bersamaan | Pada kedua versi, firewall wajib dibuat untuk kedua protokol. |
 | DNS Dual Stack | `/ip dns set servers=...` | `/ip/dns/set servers=...` | Pada v7, DNS cache dan `allow-remote-requests` lebih stabil. |
 | 6to4 | `/interface 6to4` tersedia | `/interface/6to4` tersedia tetapi dianggap deprecated | Pada kedua versi, 6to4 tidak direkomendasikan untuk produksi. |
 | 6RD | Dikonfigurasi manual melalui tunnel | Dikonfigurasi manual melalui tunnel | Tidak terdapat wizard khusus pada kedua versi. |
 | GRE6 | `/interface gre6` | `/interface/gre6` | Pada v7, parameter `mtu` dan `local-address` lebih eksplisit. |
 | IPIPv6 | `/interface ipipv6` | `/interface/ipipv6` | Fungsi sama. |
 | Teredo | Tidak didukung native pada RouterOS, melalui klien | Tidak didukung native pada RouterOS, melalui klien | Teredo dipahami sebagai konsep, implementasi dilakukan pada endpoint. |
-| DS-Lite | Konseptual, AFTR harus dibangun manual | Konseptual, AFTR lebih mudah diintegrasikan dengan tunnel v7 | Pada kedua versi, DS-Lite memerlukan AFTR khusus. |
+| DS-Lite | Konseptual, AFTR wajib dibangun manual | Konseptual, AFTR lebih sederhana diintegrasikan dengan tunnel v7 | Pada kedua versi, DS-Lite memerlukan AFTR khusus. |
 
 #### Konfigurasi RouterOS v6 — Modul 5
 
@@ -639,13 +647,13 @@ ping 2001:db8:abcd:10::1
 /interface/ipipv6/add name=ipipv6-R1R2 local-address=2001:db8:abcd:1::1 remote-address=2001:db8:abcd:1::2
 ```
 
-> **Rekomendasi:** Gunakan Dual Stack sebagai strategi utama pada kedua versi. Gunakan tunnel manual (GRE6 / IPIPv6) untuk produksi, dan batasi 6to4 hanya untuk laboratorium.
+> **Rekomendasi:** Implementasikan Dual Stack sebagai strategi utama pada kedua versi. Implementasikan tunnel manual (GRE6 / IPIPv6) untuk produksi, dan batasi 6to4 hanya untuk laboratorium.
 
-### Studi Kasus 5 - ISP Kehabisan IPv4 Publik
+### Skenario Implementasi 5 - ISP Kehabisan IPv4 Publik
 
-Sebuah ISP di Jawa Timur tidak lagi memperoleh IPv4 publik baru. Pelanggan baru tetap memerlukan akses ke situs web IPv4 lama. ISP tidak dapat menonaktifkan IPv4 secara langsung. Solusi yang digunakan adalah Dual Stack untuk pelanggan lama yang masih memperoleh IPv4, dan DS-Lite untuk pelanggan baru. Pelanggan baru hanya memperoleh IPv6, tetapi tetap dapat membuka situs IPv4 melalui AFTR. Migrasi berjalan tanpa memutus layanan.
+Sebuah ISP di Jawa Timur tidak lagi memperoleh IPv4 publik baru. Pelanggan baru tetap memerlukan akses ke situs web IPv4 lama. ISP tidak dapat menonaktifkan IPv4 secara langsung. Solusi yang digunakan adalah Dual Stack untuk pelanggan lama yang masih memperoleh IPv4, dan DS-Lite untuk pelanggan baru. Pelanggan baru hanya memperoleh IPv6, tetapi tetap dapat mengakses situs IPv4 melalui AFTR. Migrasi berjalan tanpa memutus layanan.
 
-### Implementasi - Dual Stack (Wajib, Paling Penting)
+### Implementasi - Dual Stack (Wajib, Paling Kritis)
 
 ```routeros
 # Dual Stack berarti IPv4 tetap berjalan, IPv6 ditambahkan. Jangan menonaktifkan IPv4.
@@ -728,7 +736,7 @@ Pada AFTR - terima tunnel, NAT IPv4 keluar
 Verifikasi: klien di belakang CPE dapat melakukan ping ke 8.8.8.8 (IPv4) meskipun CPE tidak memiliki IPv4 publik
 ```
 
-### Operasi dan Verifikasi
+### Validasi Operasional dan Verifikasi
 
 ```routeros
 # Dual Stack: periksa klien memperoleh IPv4 DAN IPv6
@@ -745,25 +753,24 @@ ping 2001:4860:4860::8888
 /interface/gre6/print
 ```
 
-### Apabila Terjadi Kesalahan, Periksa Hal Berikut
+### Apabila Terjadi Kesalahan, Verifikasi Hal Berikut
 
-- **Dual Stack berjalan pada IPv4 tetapi IPv6 tidak berfungsi:** Periksa RA dan firewall IPv6, bukan firewall IPv4.
+- **Dual Stack berjalan pada IPv4 tetapi IPv6 tidak berfungsi:** Verifikasi RA dan firewall IPv6, bukan firewall IPv4.
 - **6to4 tidak stabil:** Kondisi tersebut wajar, karena 6to4 memang tidak ditujukan untuk produksi. Pindahkan ke tunnel manual GRE6 atau 6RD.
-- **DS-Lite lambat:** Periksa MTU dan periksa AFTR yang mengalami overload. DS-Lite menambah overhead dan NAT terpusat.
+- **DS-Lite mengalami degradasi kinerja:** Verifikasi MTU dan verifikasi AFTR yang mengalami overload. DS-Lite menambah overhead dan NAT terpusat.
 
-> **Luaran Modul 5:** R1 dan R2 beroperasi dengan Dual Stack, serta satu tunnel (GRE6 atau 6to4) yang dapat melakukan ping IPv6 melalui tunnel.
-
+> **Luaran Teknis Modul 5:** R1 dan R2 beroperasi dengan Dual Stack, serta satu tunnel (GRE6 atau 6to4) yang dapat melakukan ping IPv6 melalui tunnel.
 
 ## Modul 6 - Interoperability
 
 **Tujuan:** Mampu membuat seluruh layanan berjalan pada IPv6, mulai dari DHCP Prefix Delegation, tunnel, DNS, PPP, hingga tools monitoring. Modul ini merupakan modul penutup yang menggabungkan seluruh modul sebelumnya.
 
-### Konsep Kunci
+### Dasar Teori
 
 - **DHCP Prefix Delegation (PD):** ISP memberikan prefix kepada CPE, bukan hanya satu alamat. CPE kemudian membagi prefix tersebut ke LAN yang berada di belakangnya. Cara ini merupakan mekanisme ISP dalam mendelegasikan /56 atau /48 kepada pelanggan.
-- **IP Version Agnostic:** Layanan seperti DNS, NTP, dan PPP harus berjalan tanpa bergantung pada IPv4 atau IPv6. DNS harus dapat menjawab A dan AAAA, NTP harus dapat menggunakan server IPv6, dan PPP harus dapat membawa IPv6.
+- **IP Version Agnostic:** Layanan seperti DNS, NTP, dan PPP wajib berjalan tanpa bergantung pada IPv4 atau IPv6. DNS wajib dapat menjawab A dan AAAA, NTP wajib dapat menggunakan server IPv6, dan PPP wajib dapat membawa IPv6.
 - **Tunnel:** IPIPv6, EoIPv6, dan GRE6 merupakan cara membungkus satu protokol di dalam protokol lain. EoIPv6 dapat membawa Ethernet (Layer 2) melalui IPv6, sehingga dapat melakukan bridging jarak jauh.
-- **Tools:** Ping, Traceroute, Torch, Traffic Generator, Netwatch, Email, dan Traffic Flow seluruhnya memiliki versi IPv6. Gunakan tools tersebut untuk operasi harian.
+- **Tools:** Ping, Traceroute, Torch, Traffic Generator, Netwatch, Email, dan Traffic Flow seluruhnya memiliki versi IPv6. Implementasikan tools tersebut untuk operasi harian.
 
 ### Perbandingan RouterOS v6 dan v7 — Modul 6
 
@@ -775,7 +782,7 @@ ping 2001:4860:4860::8888
 | EoIPv6 | `/interface eoipv6` | `/interface/eoipv6` | Pada v7, `tunnel-id` dan MTU lebih eksplisit. |
 | DNS | `/ip dns`, `/ip dns static` | `/ip/dns`, `/ip/dns/static` | Pada v7, record AAAA dan PTR `ip6.arpa` lebih konsisten. |
 | NTP | `/system ntp client` | `/system/ntp/client` | Pada v7, perintah menjadi `/system/ntp/client/set enabled=yes servers=...` |
-| PPP IPv6 | `/ppp profile use-ipv6=yes` | `/ppp/profile use-ipv6=yes` | Pada v7, pool IPv6 untuk PPP harus didefinisikan secara eksplisit pada `/ipv6/pool`. |
+| PPP IPv6 | `/ppp profile use-ipv6=yes` | `/ppp/profile use-ipv6=yes` | Pada v7, pool IPv6 untuk PPP wajib didefinisikan secara eksplisit pada `/ipv6/pool`. |
 | Tools: Ping / Traceroute / Torch | `/tool ping`, `/tool traceroute`, `/tool torch` | `/tool/ping`, `/tool/traceroute`, `/tool/torch` | Fungsi sama, penulisan berbeda. |
 | Tools: Netwatch / Traffic Flow | `/tool netwatch`, `/ip traffic-flow` | `/tool/netwatch`, `/ip/traffic-flow` | Pada v7, Netwatch mendukung `up-script` dan `down-script` dengan lebih baik. |
 | Routing Global vs Link-Local | `/ipv6 route` tanpa routing-table | `/ipv6/route` dengan `routing-table=main` | Pada v7, selalu cantumkan `routing-table`. |
@@ -842,11 +849,11 @@ ping 2001:4860:4860::8888
 /ip/traffic-flow/target/add address=2001:db8:abcd:10::100 port=2055 version=9
 ```
 
-> **Rekomendasi:** Gunakan v7 untuk implementasi DHCP PD dan PPP IPv6 pada jaringan produksi, karena stabilitas dan dukungan parameter lebih lengkap. Pada v6, lakukan pengujian PD secara menyeluruh sebelum diterapkan kepada banyak pelanggan.
+> **Rekomendasi:** Implementasikan v7 untuk implementasi DHCP PD dan PPP IPv6 pada jaringan produksi, karena stabilitas dan dukungan parameter lebih lengkap. Pada v6, lakukan pengujian PD secara menyeluruh sebelum diterapkan kepada banyak pelanggan.
 
-### Studi Kasus 6 - CPE Pelanggan WISP
+### Skenario Implementasi 6 - CPE Pelanggan WISP
 
-Sebuah WISP akan memberikan IPv6 kepada 50 pelanggan rumahan. Apabila tim IT harus melakukan konfigurasi manual satu per satu, pekerjaan tersebut tidak akan selesai tepat waktu. Solusinya adalah DHCP PD. R1 sebagai PD Server memberikan /56 kepada setiap CPE. CPE (R3) sebagai PD Client menerima prefix, kemudian secara otomatis membagikannya ke LAN pelanggan. Pelanggan tidak perlu melakukan konfigurasi tambahan, cukup menghubungkan perangkat dan memperoleh IPv6. Tim IT hanya perlu memonitor pool PD, bukan melakukan konfigurasi per pelanggan.
+Sebuah WISP akan memberikan IPv6 kepada 50 pelanggan rumahan. Apabila tim operasi jaringan wajib melakukan konfigurasi manual satu per satu, pekerjaan tersebut tidak akan selesai tepat waktu. Solusinya adalah DHCP PD. R1 sebagai PD Server memberikan /56 kepada setiap CPE. CPE (R3) sebagai PD Client menerima prefix, kemudian secara otomatis membagikannya ke LAN pelanggan. Pelanggan tidak perlu melakukan konfigurasi tambahan, cukup melakukan interkoneksi perangkat dan memperoleh IPv6. Tim Operasi Jaringan hanya perlu memonitor pool PD, bukan melakukan konfigurasi per pelanggan.
 
 ### Implementasi - DHCP PD Server pada R1
 
@@ -916,7 +923,7 @@ Sebuah WISP akan memberikan IPv6 kepada 50 pelanggan rumahan. Apabila tim IT har
 # DNS Server - dapat menerima query IPv4 dan IPv6, menjawab A dan AAAA
 /ip/dns/set servers=2001:4860:4860::8888,2001:4860:4860::8844,8.8.8.8 allow-remote-requests=yes cache-size=2048KiB
 
-# DNS Statis untuk server internal - buat record AAAA
+# DNS Statis untuk server internal - untuk record AAAA
 /ip/dns/static/add name=server.surabaya.lan address=2001:db8:abcd:10::10 type=AAAA
 /ip/dns/static/add name=server.surabaya.lan address=192.168.10.10 type=A
 
@@ -995,7 +1002,7 @@ Sebuah WISP akan memberikan IPv6 kepada 50 pelanggan rumahan. Apabila tim IT har
 /ipv6/route/print where dst-address=2001:db8:abcd:40::/64
 ```
 
-### Operasi dan Verifikasi Modul 6
+### Validasi Operasional dan Verifikasi Modul 6
 
 ```routeros
 # PD Server: pool berkurang saat pelanggan mengambil prefix
@@ -1016,29 +1023,27 @@ Sebuah WISP akan memberikan IPv6 kepada 50 pelanggan rumahan. Apabila tim IT har
 /tool/netwatch/print
 ```
 
-### Apabila Terjadi Kesalahan, Periksa Hal Berikut
+### Apabila Terjadi Kesalahan, Verifikasi Hal Berikut
 
-- **PD tidak memperoleh prefix:** Periksa sisa pool PD yang masih tersedia, dan periksa interface DHCPv6 server telah benar (interface menuju pelanggan, bukan LAN).
-- **DNS tidak menjawab AAAA:** Periksa server DNS yang digunakan telah mendukung IPv6, dan periksa firewall tidak memblokir UDP/TCP 53 untuk IPv6.
-- **PPP IPv6 tidak memperoleh alamat:** Periksa profile `use-ipv6=yes` dan pastikan pool IPv6 telah dibuat.
-- **Traffic Flow tidak sampai ke collector:** Periksa collector dapat dijangkau melalui IPv6, dan periksa firewall tidak memblokir port 2055.
+- **PD tidak memperoleh prefix:** Verifikasi sisa pool PD yang masih tersedia, dan verifikasi interface DHCPv6 server telah benar (interface menuju pelanggan, bukan LAN).
+- **DNS tidak menjawab AAAA:** Verifikasi server DNS yang digunakan telah mendukung IPv6, dan verifikasi firewall tidak memblokir UDP/TCP 53 untuk IPv6.
+- **PPP IPv6 tidak memperoleh alamat:** Verifikasi profile `use-ipv6=yes` dan verifikasi bahwa pool IPv6 telah dibuat.
+- **Traffic Flow tidak sampai ke collector:** Verifikasi collector dapat dijangkau melalui IPv6, dan verifikasi firewall tidak memblokir port 2055.
 
-> **Luaran Modul 6:** R3 sebagai CPE memperoleh prefix melalui PD, LAN pelanggan memperoleh IPv6 secara otomatis, DNS dan NTP berjalan pada IPv6, dan Netwatch monitoring aktif.
+> **Luaran Teknis Modul 6:** R3 sebagai CPE memperoleh prefix melalui PD, LAN pelanggan memperoleh IPv6 secara otomatis, DNS dan NTP berjalan pada IPv6, dan Netwatch monitoring aktif.
 
-
-## Appendix A - Matriks Troubleshooting Cepat
+## Appendix A - Matriks Troubleshooting Optimal
 
 | Gejala | Kemungkinan Penyebab | Pemeriksaan Pertama |
 |---|---|---|
 | Klien tidak memperoleh IPv6 | RA tidak berjalan, advertise=no | `/ipv6/nd/print`, `/ipv6/address/print` |
 | Memperoleh IPv6 tetapi tidak dapat mengakses internet | Default route hilang, firewall memblokir | `/ipv6/route/print`, `/ipv6/firewall/filter/print` |
-| Ping lancar, web gagal | MTU / PMTUD, ICMPv6 Packet Too Big diblokir | Ping ukuran bertahap, firewall ICMPv6 |
-| Internet terputus tiba-tiba | Rogue RA | Log RA, firewall drop RA |
+| Ping stabil, web gagal | MTU / PMTUD, ICMPv6 Packet Too Big diblokir | Ping ukuran bertahap, firewall ICMPv6 |
+| Internet terterputus tiba-tiba | Rogue RA | Log RA, firewall drop RA |
 | DHCPv6 tidak memberikan alamat | Flag M / O pada NDP tidak sesuai | `/ipv6/nd/print`, managed/other flag |
 | PD tidak memperoleh prefix | Pool habis, interface tidak sesuai | `/ipv6/pool/used/print` |
 | IPsec tidak terbentuk | PSK berbeda, UDP 500/4500 diblokir | `/ip/ipsec/active-peers/print` |
 | Tunnel down | Remote address berubah, MTU | `/interface/gre6/print`, `/interface/eoipv6/print` |
-
 
 ## Appendix B - Cheat Sheet
 

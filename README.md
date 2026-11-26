@@ -2,14 +2,14 @@
 
 ## Daftar Isi
 
-- [Modul 1 - Introduction to IPv6](#modul-1---introduction-to-ipv6)
-- [Modul 2 - IPv6 Protocol](#modul-2---ipv6-protocol)
-- [Modul 3 - IPv6 Packet](#modul-3---ipv6-packet)
-- [Modul 4 - IPv6 Security](#modul-4---ipv6-security)
-- [Modul 5 - Transition Mechanisms](#modul-5---transition-mechanisms)
-- [Modul 6 - Interoperability](#modul-6---interoperability)
+- [Modul 1. Introduction to IPv6](#modul-1-introduction-to-ipv6)
+- [Modul 2. IPv6 Protocol](#modul-2-ipv6-protocol)
+- [Modul 3. IPv6 Packet](#modul-3-ipv6-packet)
+- [Modul 4. IPv6 Security](#modul-4-ipv6-security)
+- [Modul 5. Transition Mechanisms](#modul-5-transition-mechanisms)
+- [Modul 6. Interoperability](#modul-6-interoperability)
 
-## Modul 1 - Introduction to IPv6
+## Modul 1. Introduction to IPv6
 
 **Tujuan:** Mampu membaca, menulis, membagi, dan memasang alamat IPv6 secara benar. Modul ini merupakan fondasi.
 
@@ -31,7 +31,7 @@
 | Duplicate Address Detection (DAD) | Berjalan, status terlihat pada `address print` | Berjalan, status lebih detail pada `address print` | Pada v7, alamat yang gagal DAD ditandai lebih jelas. |
 | ULA | Didukung melalui `/ipv6 address` | Didukung melalui `/ipv6/address` | Tidak ada perbedaan fungsional. |
 
-#### Konfigurasi RouterOS v6 — Modul 1
+#### Konfigurasi RouterOS v6 —  1
 
 ```routeros
 # v6: penulisan dengan spasi
@@ -45,7 +45,7 @@
 /ipv6 address print detail
 ```
 
-#### Konfigurasi RouterOS v7 — Modul 1
+#### Konfigurasi RouterOS v7 —  1
 
 ```routeros
 # v7: penulisan dengan slash
@@ -115,13 +115,13 @@ ping fe80::1%ether2
 
 ### Apabila Terjadi Kesalahan, Verifikasi Hal Berikut
 
-- **Klien tidak memperoleh alamat global:** Verifikasi `advertise=yes` dan verifikasi bahwa NDP / RA aktif. Amati Modul 2.
+- **Klien tidak memperoleh alamat global:** Verifikasi `advertise=yes` dan verifikasi bahwa NDP / RA aktif. Amati  2.
 - **Alamat tampil tetapi tidak dapat melakukan ping:** Verifikasi firewall pada jalur tersebut dan verifikasi bahwa prefix yang digunakan adalah /64, bukan /120 atau /126.
 - **Kesulitan membaca alamat:** Latih kompresi alamat. Perlu diingat bahwa `::` hanya diperbolehkan digunakan satu kali dalam satu alamat.
 
-> **Luaran Teknis Modul 1:** Tabel addressing plan yang telah diisi dan diterapkan pada R1 dan R2, serta keluaran `/ipv6/address/print` dari kedua router.
+> **Luaran Teknis  1:** Tabel addressing plan yang telah diisi dan diterapkan pada R1 dan R2, serta keluaran `/ipv6/address/print` dari kedua router.
 
-## Modul 2 - IPv6 Protocol
+## Modul 2. IPv6 Protocol
 
 **Tujuan:** Mampu membuat klien memperoleh alamat secara otomatis, memahami cara kerja Neighbor Discovery, dan mampu melakukan routing IPv6 dasar.
 
@@ -284,7 +284,7 @@ ping 2001:db8:abcd:10::1
 
 > **Luaran Teknis Modul 2:** Satu LAN beroperasi dengan SLAAC, satu LAN beroperasi dengan DHCPv6 Stateful, serta routing R1 ke R2 dalam dua arah dapat melakukan ping.
 
-## Modul 3 - IPv6 Packet
+## Modul 3. IPv6 Packet
 
 **Tujuan:** Mampu membaca header IPv6, memahami cara kerja extension header, fragmentasi, dan Path MTU Discovery. Modul ini meningkatkan kemampuan troubleshooting.
 
@@ -395,7 +395,7 @@ Pelanggan melaporkan bahwa ping ke server berjalan stabil, tetapi pembukaan situ
 
 > **Luaran Teknis Modul 3:** Laporan MTU setiap link (WAN, tunnel, LAN) dan hasil ping 1280, 1400, dan 1500 byte dengan do-not-fragment.
 
-## Modul 4 - IPv6 Security
+## Modul 4. IPv6 Security
 
 **Tujuan:** Mampu mengamankan NDP, ICMPv6, dan traffic IPv6 dengan firewall yang benar, serta memahami IPsec untuk IPv6.
 
@@ -583,7 +583,7 @@ ping 2001:db8:abcd:10::1
 
 > **Luaran Teknis Modul 4:** Firewall IPv6 aktif pada R1 dan R2 dengan log drop, serta IPsec R1-R2 dalam keadaan established dan traffic LAN terenkripsi.
 
-## Modul 5 - Transition Mechanisms
+## Modul 5. Transition Mechanisms
 
 **Tujuan:** Mampu membuat IPv4 dan IPv6 berjalan secara bersamaan, serta mampu menghubungkan pulau IPv6 melalui jaringan IPv4, atau sebaliknya.
 
@@ -761,7 +761,7 @@ ping 2001:4860:4860::8888
 
 > **Luaran Teknis Modul 5:** R1 dan R2 beroperasi dengan Dual Stack, serta satu tunnel (GRE6 atau 6to4) yang dapat melakukan ping IPv6 melalui tunnel.
 
-## Modul 6 - Interoperability
+## Modul 6. Interoperability
 
 **Tujuan:** Mampu membuat seluruh layanan berjalan pada IPv6, mulai dari DHCP Prefix Delegation, tunnel, DNS, PPP, hingga tools monitoring. Modul ini merupakan modul penutup yang menggabungkan seluruh modul sebelumnya.
 
